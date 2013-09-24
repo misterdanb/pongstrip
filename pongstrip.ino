@@ -4,8 +4,8 @@
 
 #define STRIP_PIN 6
 
-#define POTI_ONE_PIN A1
-#define POTI_TWO_PIN A2
+#define POTI_ONE_PIN A0
+#define POTI_TWO_PIN A1
 
 class Color
 {
@@ -157,12 +157,23 @@ public:
 	int x, y;
 };
 
+// colors
+Color black(0, 0, 0);
+
+Color lifeColor(128, 0, 0);
+
+Color topColor(0, 0, 255);
+Color bottomColor(0, 255, 0);
+
 // game
 const int scaleFactor = 128;
 
 const int displaySize = 60;
 
-const int playfieldWidth = displaySize * scaleFactor;
+const int playerSize = 10;
+const int playerLifes = 3;
+
+const int playfieldWidth = (displaySize - 2 * playerLifes) * scaleFactor;
 const int playfieldHeight = 255 * scaleFactor;
 
 const Vector playfieldSize(playfieldWidth, playfieldHeight);
@@ -174,11 +185,13 @@ Vector ballSpeed(-100, -800);
 
 Vector playerOnePosition(0, playfieldHeight / 2);
 Vector playerOneSpeed(0, 0);
-int playerOneSize = 10;
+int playerOneSize = playerSize;
+int playerOneLifes = playerLifes;
 
 Vector playerTwoPosition(playfieldWidth - 1, playfieldHeight / 2);
 Vector playerTwoSpeed(0, 0);
-int playerTwoSize = 10;
+int playerTwoSize = playerSize;
+int playerTwoLifes = playerLifes;
 
 bool gameOver = false;
 int winner = 0;
@@ -204,8 +217,13 @@ void updateCollisions()
 		}
 		else
 		{
-			gameOver = true;
-			winner = 2;
+			playerOneLifes--;
+			
+			if (playerOneLifes == 0)
+			{
+				gameOver = true;
+				winner = 2;
+			}
 		}
 	}
 	
@@ -219,8 +237,13 @@ void updateCollisions()
 		}
 		else
 		{
-			gameOver = true;
-			winner = 1;
+			playerTwoLifes--;
+			
+			if (playerTwoLifes == 0)
+			{
+				gameOver = true;
+				winner = 1;
+			}
 		}
 	}
 }
@@ -266,8 +289,6 @@ void updateInputs()
 	
 	// read player two input
 	playerTwoSpeed.y = analogRead(POTI_TWO_PIN) - 512;
-	
-	Serial.print(playerOneSpeed.y);
 }
 
 void update()
@@ -275,6 +296,11 @@ void update()
 	updateCollisions();
 	updatePositions();
 	updateInputs();
+}
+
+Color generateColorByPosition(Vector& position, Color& colorOne, Color& colorTwo)
+{
+	return colorOne + (position.y * (colorTwo - colorOne)) / playfieldHeight;
 }
 
 void renderPreEffects()
@@ -285,12 +311,84 @@ void renderPreEffects()
 	}
 }
 
+void renderPlayerOneLifes()
+{
+	switch (playerOneLifes)
+	{
+	case 0:
+		display[0] = black;
+		display[1] = black;
+		display[2] = black;
+		break;
+		
+	case 1:
+		display[0] = lifeColor;
+		display[1] = black;
+		display[2] = black;
+		break;
+		
+	case 2:
+		display[0] = lifeColor;
+		display[1] = lifeColor;
+		display[2] = black;
+		break;
+		
+	case 3:
+		display[0] = lifeColor;
+		display[1] = lifeColor;
+		display[2] = lifeColor;
+		break;
+		
+	default:
+		display[displaySize - 1] = black;
+		display[displaySize - 2] = black;
+		display[displaySize - 3] = black;
+		break;
+	}
+}
+
+void renderPlayerTwoLifes()
+{
+	switch (playerTwoLifes)
+	{
+	case 0:
+		display[displaySize - 1] = black;
+		display[displaySize - 2] = black;
+		display[displaySize - 3] = black;
+		break;
+		
+	case 1:
+		display[displaySize - 1] = lifeColor;
+		display[displaySize - 2] = black;
+		display[displaySize - 3] = black;
+		break;
+		
+	case 2:
+		display[displaySize - 1] = lifeColor;
+		display[displaySize - 2] = lifeColor;
+		display[displaySize - 3] = black;
+		break;
+		
+	case 3:
+		display[displaySize - 1] = lifeColor;
+		display[displaySize - 2] = lifeColor;
+		display[displaySize - 3] = lifeColor;
+		break;
+		
+	default:
+		display[displaySize - 1] = black;
+		display[displaySize - 2] = black;
+		display[displaySize - 3] = black;
+		break;
+	}
+}
+
 void renderBall()
 {
 	Vector ballDisplayPosition = ballPosition / scaleFactor;
 	
 	// render ball
-	display[ballDisplayPosition.x] = Color(0, 255 - ballDisplayPosition.y, ballDisplayPosition.y);
+	display[playerLifes + ballDisplayPosition.x] = generateColorByPosition(ballPosition, topColor, bottomColor);
 }
 
 void renderPlayerOne()
@@ -298,7 +396,7 @@ void renderPlayerOne()
 	Vector playerOneDisplayPosition = playerOnePosition / scaleFactor;
 	
 	// render player one
-	display[playerOneDisplayPosition.x] = Color(0, 255 - playerOneDisplayPosition.y, playerOneDisplayPosition.y);
+	display[playerLifes + playerOneDisplayPosition.x] = generateColorByPosition(playerOnePosition, topColor, bottomColor);
 }
 
 void renderPlayerTwo()
@@ -306,7 +404,7 @@ void renderPlayerTwo()
 	Vector playerTwoDisplayPosition = playerTwoPosition / scaleFactor;
 	
 	// render player two
-	display[playerTwoDisplayPosition.x] = Color(0, 255 - playerTwoDisplayPosition.y, playerTwoDisplayPosition.y);
+	display[playerLifes + playerTwoDisplayPosition.x] = generateColorByPosition(playerTwoPosition, topColor, bottomColor);
 }
 
 void renderPostEffects()
@@ -316,6 +414,9 @@ void renderPostEffects()
 void render()
 {
 	renderPreEffects();
+	
+	renderPlayerOneLifes();
+	renderPlayerTwoLifes();
 	
 	renderBall();
 	renderPlayerOne();
@@ -343,15 +444,22 @@ void gameLoop()
 
 void setup()
 {
+	pinMode(POTI_ONE_PIN, INPUT);
+	pinMode(POTI_TWO_PIN, INPUT);
+	
+	pinMode(STRIP_PIN, OUTPUT);
+	
 	Serial.begin(9600);
 	
 	strip.begin();
 	strip.show();
 	
-	Timer1.initialize(10000);
-	Timer1.attachInterrupt(gameLoop);
+	//Timer1.initialize(10000);
+	//Timer1.attachInterrupt(gameLoop);
 }
 
 void loop()
 {
+	gameLoop();
+	delay(1000);
 }
