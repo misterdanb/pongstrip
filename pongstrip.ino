@@ -91,7 +91,7 @@ void updateCollisions()
 		}
 		else
 		{
-			// ball did not hit the paddle, so decrement player one's lifes
+			// ball will not hit the paddle, so decrement player one's lifes
 			playerOneLifes--;
 			
 			// has player one any lifes left?
@@ -117,7 +117,7 @@ void updateCollisions()
 		}
 		else
 		{
-			// ball did not hit the paddle, so decrement player two's lifes
+			// ball will not hit the paddle, so decrement player two's lifes
 			playerTwoLifes--;
 			
 			// has player two any lifes left?
