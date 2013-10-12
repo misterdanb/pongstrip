@@ -5,7 +5,9 @@
 #define STRIP_PIN 6
 
 #define POTI_ONE_PIN A0
-#define POTI_TWO_PIN A1
+#define POTI_TWO_PIN A5
+
+typedef int16_t pong_int;
 
 /* helper classes */
 
@@ -17,7 +19,7 @@ public:
 	{
 	}
 	
-	Vector(int newX, int newY)
+	Vector(pong_int newX, pong_int newY)
 		: x(newX), y(newY)
 	{
 	}
@@ -48,17 +50,17 @@ public:
 		return (*this);
 	}
 	
-	friend Vector operator*(const Vector& left, int right)
+	friend Vector operator*(const Vector& left, pong_int right)
 	{
 		return Vector(left.x * right, left.y * right);
 	}
 	
-	friend Vector operator*(int left, const Vector& right)
+	friend Vector operator*(pong_int left, const Vector& right)
 	{
 		return Vector(left * right.x, left * right.y);
 	}
 	
-	Vector& operator*=(int right)
+	Vector& operator*=(pong_int right)
 	{
 		x *= right;
 		y *= right;
@@ -66,12 +68,12 @@ public:
 		return (*this);
 	}
 	
-	friend Vector operator/(const Vector& left, int right)
+	friend Vector operator/(const Vector& left, pong_int right)
 	{
 		return Vector(left.x / right, left.y / right);
 	}
 	
-	Vector& operator/=(int right)
+	Vector& operator/=(pong_int right)
 	{
 		x /= right;
 		y /= right;
@@ -79,7 +81,7 @@ public:
 		return (*this);
 	}
 	
-	int x, y;
+	pong_int x, y;
 };
 
 class Color
@@ -90,7 +92,7 @@ public:
 	{
 	}
 	
-	Color(int newR, int newG, int newB)
+	Color(pong_int newR, pong_int newG, pong_int newB)
 		: r(newR), g(newG), b(newB)
 	{
 	}
@@ -123,17 +125,17 @@ public:
 		return (*this);
 	}
 	
-	friend Color operator*(const Color& left, int right)
+	friend Color operator*(const Color& left, pong_int right)
 	{
 		return Color(left.r * right, left.g * right, left.b * right);
 	}
 	
-	friend Color operator*(int left, const Color& right)
+	friend Color operator*(pong_int left, const Color& right)
 	{
 		return Color(left * right.r, left * right.g, left * right.b);
 	}
 	
-	Color& operator*=(int right)
+	Color& operator*=(pong_int right)
 	{
 		r *= right;
 		g *= right;
@@ -142,12 +144,12 @@ public:
 		return (*this);
 	}
 	
-	friend Color operator/(const Color& left, int right)
+	friend Color operator/(const Color& left, pong_int right)
 	{
 		return Color(left.r / right, left.g / right, left.b / right);
 	}
 	
-	Color& operator/=(int right)
+	Color& operator/=(pong_int right)
 	{
 		r /= right;
 		g /= right;
@@ -156,7 +158,7 @@ public:
 		return (*this);
 	}
 	
-	int r, g, b;
+	pong_int r, g, b;
 };
 
 /* colors */
@@ -168,50 +170,54 @@ Color topColor(0, 0, 255);
 Color bottomColor(0, 255, 0);
 
 /* game */
-// scale factor between virtual playfield and the display
-const int scaleFactor = 40;
+// scale factor between virtuaintl playfield and the display
+const pong_int scaleFactor = 40;
 
 // size of the display
-const int displaySize = 60;
+const pong_int displaySize = 60;
 
 // paddle size of the player, actually th color tolerance
-const int playerSize = 10000;
+const pong_int playerSize = 40 * scaleFactor;
 
 // amount of lifes of each player
-const int playerLifes = 3;
+const pong_int playerLifes = 3;
 
 // virtual playfield dimensions
-const int playfieldWidth = (displaySize - 2 * playerLifes) * scaleFactor;
-const int playfieldHeight = 255 * scaleFactor;
+const pong_int playfieldWidth = (displaySize - 2 * playerLifes) * scaleFactor;
+const pong_int playfieldHeight = 255 * scaleFactor;
 
 const Vector playfieldSize(playfieldWidth, playfieldHeight);
 
 // frame buffer
 Color display[displaySize];
 
+// ball position and speed in the virtual playfield to be reset to
+Vector ballPositionResetValue(playfieldWidth / 2, playfieldHeight / 2);
+Vector ballSpeedResetValue(-10, -30);
+
 // ball position and speed in the virtual playfield
-Vector ballPosition(playfieldWidth / 2, playfieldHeight / 2);
-Vector ballSpeed(-8, -4);
+Vector ballPosition = ballPositionResetValue;
+Vector ballSpeed = ballSpeedResetValue;
 
 // player one position and speeed in the virtual playfield
 Vector playerOnePosition(0, playfieldHeight / 2);
 Vector playerOneSpeed(0, 0);
 
 // player one current size and lifes
-int playerOneSize = playerSize;
-int playerOneLifes = playerLifes;
+pong_int playerOneSize = playerSize;
+pong_int playerOneLifes = playerLifes;
 
 // player two position and speeed in the virtual playfield
 Vector playerTwoPosition(playfieldWidth - 1, playfieldHeight / 2);
 Vector playerTwoSpeed(0, 0);
 
 // player two current size and lifes
-int playerTwoSize = playerSize;
-int playerTwoLifes = playerLifes;
+pong_int playerTwoSize = playerSize;
+pong_int playerTwoLifes = playerLifes;
 
 // game status and winner
 bool gameOver = false;
-int winner = 0;
+pong_int winner = 0;
 
 // display
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(displaySize, STRIP_PIN, NEO_GRB + NEO_KHZ800);
@@ -229,21 +235,24 @@ void updateCollisions()
 	
 	// check player one collisions
 	// will the ball be behind player one after the next iteration?
-	if (ballPosition.x + ballSpeed.x <= playerOnePosition.x)
+	if (ballPosition.x + ballSpeed.x <= playerOnePosition.x + scaleFactor - 1)
 	{
 		// will the ball hit the paddle or will it get behind the it
 		if (ballPosition.y + ballSpeed.y >= playerOnePosition.y - playerOneSize &&
 		    ballPosition.y + ballSpeed.y <= playerOnePosition.y + playerOneSize)
 		{
-			// ball will hit the paddle, so swap the x direction
+			// ball will hit the paddle, so swap the x direction and make it faster
 			ballSpeed.x *= -1;
+			ballSpeed.x += 1;
 		}
 		else
 		{
 			// ball will not hit the paddle, so decrement player one's lifes
 			playerOneLifes--;
 			
+			// reset the balls position and speed and switch it's speed direction for the next round
 			ballPosition = Vector(playfieldWidth / 2, playfieldHeight / 2);
+			ballSpeed = ballSpeedResetValue;
 			ballSpeed *= -1;
 			
 			// has player one any lifes left?
@@ -252,28 +261,34 @@ void updateCollisions()
 				// player one has no more lifes, player two wins, the game is over
 				gameOver = true;
 				winner = 2;
+				
+				playerOneLifes = playerLifes;
+				playerTwoLifes = playerLifes;
 			}
 		}
 	}
 	
 	// check player two collisions
 	// will the ball be behind player two after the next iteration?
-	if (ballPosition.x + ballSpeed.x >= playerTwoPosition.x)
+	if (ballPosition.x + ballSpeed.x >= playerTwoPosition.x - scaleFactor)
 	{
 		// will the ball hit the paddle or will it get behind the it
 		if (ballPosition.y + ballSpeed.y >= playerTwoPosition.y - playerTwoSize &&
 		    ballPosition.y + ballSpeed.y <= playerTwoPosition.y + playerTwoSize)
 		{
-			// ball will hit the paddle, so swap the x direction
+			// ball will hit the paddle, so swap the x direction and make it faster
 			ballSpeed.x *= -1;
+			ballSpeed.x += -1;
 		}
 		else
 		{
 			// ball will not hit the paddle, so decrement player two's lifes
 			playerTwoLifes--;
 			
+			// reset the balls position and speed and switch it's speed direction for the next round
 			ballPosition = Vector(playfieldWidth / 2, playfieldHeight / 2);
-			ballSpeed *= -1;
+			ballSpeed = ballSpeedResetValue;
+			ballSpeed *= 1;
 			
 			// has player two any lifes left?
 			if (playerTwoLifes == 0)
@@ -281,6 +296,9 @@ void updateCollisions()
 				// player two has no more lifes, player one wins, the game is over
 				gameOver = true;
 				winner = 1;
+				
+				playerOneLifes = playerLifes;
+				playerTwoLifes = playerLifes;
 			}
 		}
 	}
@@ -293,42 +311,6 @@ void updatePositions()
 {
 	// update ball position
 	ballPosition += ballSpeed;
-	
-	// update player one position
-	// will player one be over the top or below the bottom after the next iteration?
-	if (playerOnePosition.y - playerOneSize + playerOneSpeed.y < 0)
-	{
-		// player one will be over the top, so set it to the lowest possible value
-		playerOnePosition.y = playerOneSize;
-	}
-	else if (playerOnePosition.y + playerOneSize + playerOneSpeed.y >= playfieldWidth)
-	{
-		// player one will be below the bottom, so set it to the biggest possible value
-		playerOnePosition.y = playfieldWidth - playerOneSize - 1;
-	}
-	else
-	{
-		// player one will be within the legal range, so just add the current speed
-		playerOnePosition += playerOneSpeed;
-	}
-	
-	// update player two position
-	// will player two be over the top or below the bottom after the next iteration?
-	if (playerTwoPosition.y - playerTwoSize + playerTwoSpeed.y < 0)
-	{
-		// player two will be over the top, so set it to the lowest possible value
-		playerTwoPosition.y = playerTwoSize;
-	}
-	else if (playerTwoPosition.y + playerTwoSize + playerTwoSpeed.y >= playfieldWidth)
-	{
-		// player two will be below the bottom, so set it to the biggest possible value
-		playerTwoPosition.y = playfieldWidth - playerTwoSize - 1;
-	}
-	else
-	{
-		// player two will be within the legal range, so just add the current speed
-		playerTwoPosition += playerTwoSpeed;
-	}
 }
 
 /*
@@ -337,10 +319,34 @@ void updatePositions()
 void updateInputs()
 {
 	// read player one input
-	playerOneSpeed.y = analogRead(POTI_ONE_PIN) - 512;
+	playerOnePosition.y = (analogRead(POTI_ONE_PIN) * scaleFactor) / 4;
 	
 	// read player two input
-	playerTwoSpeed.y = analogRead(POTI_TWO_PIN) - 512;
+	playerTwoPosition.y = (analogRead(POTI_TWO_PIN) * scaleFactor) / 4;
+	
+	// will player one be over the top or below the bottom after the next iteration?
+	if (playerOnePosition.y - playerOneSize < 0)
+	{
+		// player one will be over the top, so set it to the lowest possible value
+		playerOnePosition.y = playerOneSize;
+	}
+	else if (playerOnePosition.y + playerOneSize >= playfieldHeight)
+	{
+		// player one will be below the bottom, so set it to the biggest possible value
+		playerOnePosition.y = playfieldHeight - playerOneSize - 1;
+	}
+	
+	// will player two be over the top or below the bottom after the next iteration?
+	if (playerTwoPosition.y - playerTwoSize < 0)
+	{
+		// player two will be over the top, so set it to the lowest possible value
+		playerTwoPosition.y = playerTwoSize;
+	}
+	else if (playerTwoPosition.y + playerTwoSize >= playfieldHeight)
+	{
+		// player two will be below the bottom, so set it to the biggest possible value
+		playerTwoPosition.y = playfieldHeight - playerTwoSize - 1;
+	}
 }
 
 /*
@@ -360,7 +366,28 @@ Color generateColorByPosition(Vector& position, Color& colorOne, Color& colorTwo
 {
 	// return the color based on the vertical position on the virtual playfield
 	// and normalized with the virtual playfields height
-	return colorOne + ((colorTwo - colorOne) * position.y) / playfieldHeight;
+	//return colorOne + ((colorTwo - colorOne) * position.y) / playfieldHeight;
+	
+	Vector positionOnDisplay = position / scaleFactor;
+	
+	uint16_t rOne = (uint16_t) colorOne.r;
+	uint16_t gOne = (uint16_t) colorOne.g;
+	uint16_t bOne = (uint16_t) colorOne.b;
+	
+	uint16_t rTwo = (uint16_t) colorTwo.r;
+	uint16_t gTwo = (uint16_t) colorTwo.g;
+	uint16_t bTwo = (uint16_t) colorTwo.b;
+	
+	uint16_t yPosition = (uint16_t) positionOnDisplay.y;
+	uint16_t yNorm = (uint16_t) 255;
+	
+	uint16_t newR = (rOne * (yNorm - yPosition) + rTwo * yPosition) / yNorm;
+	uint16_t newG = (gOne * (yNorm - yPosition) + gTwo * yPosition) / yNorm;
+	uint16_t newB = (bOne * (yNorm - yPosition) + bTwo * yPosition) / yNorm;
+	
+	Color newColor(newR, newG, newB);
+	
+	return newColor;
 }
 
 /*
@@ -369,7 +396,7 @@ Color generateColorByPosition(Vector& position, Color& colorOne, Color& colorTwo
 void renderPreEffects()
 {
 	// some slow outfading of the colors on the display
-	for (int i = 0; i < displaySize; i++)
+	for (pong_int i = 0; i < displaySize; i++)
 	{
 		display[i] /= 2;
 	}
@@ -381,7 +408,7 @@ void renderPreEffects()
 void renderLifesOfThePlayers()
 {
 	// loop through all the possible life pixels
-	for (int i = 0; i < playerLifes; i++) 
+	for (pong_int i = 0; i < playerLifes; i++) 
 	{
 		// is i in range of lifes left for player one?
 		if (i < playerOneLifes)
@@ -466,11 +493,13 @@ void render()
  */
 void draw()
 {
+	pong_int colorDevider = 10;
+	
 	// loop through all pixels
-	for (int i = 0; i < displaySize; i++)
+	for (pong_int i = 0; i < displaySize; i++)
 	{
 		// set the pixel color
-		strip.setPixelColor(i, strip.Color(display[i].r, display[i].g, display[i].b));
+		strip.setPixelColor(i, strip.Color(display[i].r / colorDevider, display[i].g / colorDevider, display[i].b / colorDevider));
 	}
 	
 	// tell the strip to show everything
@@ -490,8 +519,8 @@ void gameLoop()
 void setup()
 {
 	// set up potentiometers to work as inputs
-	pinMode(POTI_ONE_PIN, INPUT);
-	pinMode(POTI_TWO_PIN, INPUT);
+	//pinMode(POTI_ONE_PIN, INPUT);
+	//pinMode(POTI_TWO_PIN, INPUT);
 	
 	// set up the strip to work as output
 	pinMode(STRIP_PIN, OUTPUT);
@@ -506,12 +535,12 @@ void setup()
 	//Timer1.initialize(10000);
 	//Timer1.attachInterrupt(gameLoop);
 }
-
+ 
 void loop()
 {
 	// call the game iteration method in loop
 	gameLoop();
 	
 	// delay for some time
-	delay(20);
+	delay(50);
 }
