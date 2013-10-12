@@ -169,6 +169,8 @@ Color lifeColor(128, 0, 0);
 Color topColor(0, 0, 255);
 Color bottomColor(0, 255, 0);
 
+bool hsbMode = true;
+
 /* game */
 // scale factor between virtuaintl playfield and the display
 const pong_int scaleFactor = 40;
@@ -360,7 +362,95 @@ void update()
 }
 
 /*
- * generate a color acoording to the vertical position on the virtual playfield
+ * weird implementation, but somehow does, what we want to do
+ */
+Color hsbToRGB(int h, int s, int b) 
+{ 
+	int hStep = 51;
+	int base;
+	
+	Color result;
+
+  	if (s == 0)
+  	{ 
+    	result.r = b;
+	    result.g = b;
+	    result.b = b; 
+	} 
+	else
+	{ 
+		base = ((255 - s) * b) >> 8;
+
+	    switch (h / hStep) 
+	    { 
+		    case 0: //red
+		    {
+		        result.r = b;		
+		        result.g = (((b - base) * h) / hStep) + base;		
+		        result.b = base;		
+		    	break;
+			}
+
+		    case 1: //yellow
+		    {
+		        result.r = (((b - base) * (hStep - (h % hStep))) / hStep) + base;		
+		        result.g = b;		
+		        result.b = base;		
+		    	break;
+		    }
+
+		    case 2: //green
+		    {
+		        result.r = base;		
+		        result.g = b;		
+		        result.b = (((b - base) * (h % hStep)) / hStep) + base;		
+		    	break;
+			}
+
+			case 3: //cyan
+		    {
+		        result.r = base;		
+		        result.g = ((b * (hStep - (h % hStep))) / hStep) + base;		
+		        result.b = b;		
+		    	break;
+		    }
+
+			case 4: //blue
+		    {
+		        result.r = (((b - base) * (h % hStep)) / hStep) + base;		
+		        result.g = base;		
+		        result.b = b;		
+		    	break;
+		    }
+
+			case 5: //magenta
+		    {
+		        result.r = b;		
+		        result.g = base;		
+		        result.b = (((b - base) * (hStep - (h % hStep))) / hStep) + base;		
+		    	break;
+		    }		
+		}
+	}
+	
+	return result;
+}
+
+/*
+ * generate a color acoording to the vertical position on the virtual playfield based on hsb colors
+ */
+Color generateHSBColorByPosition(Vector& position)
+{
+	Vector positionOnDisplay = position / scaleFactor;
+	uint16_t yPosition = (uint16_t) positionOnDisplay.y;
+	
+	uint16_t yPositionHue = (yPosition * (51 * 6)) / 256;
+	
+	return hsbToRGB(yPositionHue, 255, 255);
+}
+
+/*
+ * generate a color acoording to the vertical position on the virtual playfield based on two colors
  */
 Color generateColorByPosition(Vector& position, Color& colorOne, Color& colorTwo)
 {
@@ -379,7 +469,7 @@ Color generateColorByPosition(Vector& position, Color& colorOne, Color& colorTwo
 	uint16_t bTwo = (uint16_t) colorTwo.b;
 	
 	uint16_t yPosition = (uint16_t) positionOnDisplay.y;
-	uint16_t yNorm = (uint16_t) 255;
+	uint16_t yNorm = (uint16_t) 256;
 	
 	uint16_t newR = (rOne * (yNorm - yPosition) + rTwo * yPosition) / yNorm;
 	uint16_t newG = (gOne * (yNorm - yPosition) + gTwo * yPosition) / yNorm;
@@ -444,8 +534,19 @@ void renderBall()
 	// determine the position of the ball on the display
 	Vector ballDisplayPosition = ballPosition / scaleFactor;
 	
+	Color ballColor;
+	
+	if (!hsbMode)
+	{
+		ballColor = generateColorByPosition(ballPosition, topColor, bottomColor);
+	}
+	else
+	{
+		ballColor = generateHSBColorByPosition(ballPosition);
+	}
+	
 	// set color on the display
-	display[playerLifes + ballDisplayPosition.x] = generateColorByPosition(ballPosition, topColor, bottomColor);
+	display[playerLifes + ballDisplayPosition.x] = ballColor;
 }
 
 /*
@@ -456,14 +557,36 @@ void renderPlayers()
 	// determine the position of player one on the display
 	Vector playerOneDisplayPosition = playerOnePosition / scaleFactor;
 	
+	Color playerOneColor;
+	
+	if (!hsbMode)
+	{
+		playerOneColor = generateColorByPosition(playerOnePosition, topColor, bottomColor);
+	}
+	else
+	{
+		playerOneColor = generateHSBColorByPosition(playerOnePosition);
+	}
+	
 	// set color on the display
-	display[playerLifes + playerOneDisplayPosition.x] = generateColorByPosition(playerOnePosition, topColor, bottomColor);
+	display[playerLifes + playerOneDisplayPosition.x] = playerOneColor;
 	
 	// determine the position of player two on the display
 	Vector playerTwoDisplayPosition = playerTwoPosition / scaleFactor;
 	
+	Color playerTwoColor;
+	
+	if (!hsbMode)
+	{
+		playerTwoColor = generateColorByPosition(playerTwoPosition, topColor, bottomColor);
+	}
+	else
+	{
+		playerTwoColor = generateHSBColorByPosition(playerTwoPosition);
+	}
+	
 	// set color on the display
-	display[playerLifes + playerTwoDisplayPosition.x] = generateColorByPosition(playerTwoPosition, topColor, bottomColor);
+	display[playerLifes + playerTwoDisplayPosition.x] = playerTwoColor;
 }
 
 /*
