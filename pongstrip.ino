@@ -647,17 +647,7 @@ void gameLoop()
 	render();
 	draw();
 	
-	// potentially buggy, please go to sleep
-	unsigned long overflowCount = 0b0111111111111111;
-	
-	uint64_t FAK_U = 0;
-	
-	if (lastTime - micros() > overflowCount)
-	{
-		uint64_t FAK_U = 0b1111111111111111 - lastTime;
-	}
-	
-	while (micros() - lastTime >= 20000 - FAK_U);
+	while (micros() - lastTime >= 20000);
 }
 
 void setup()
