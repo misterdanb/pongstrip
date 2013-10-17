@@ -1,3 +1,7 @@
+/*
+ * AUTHORS: shguro, danb
+ */
+
 #include <Adafruit_NeoPixel.h>
 #include <TimerOne.h>
 #include <SPI.h>
@@ -172,6 +176,9 @@ Color bottomColor(0, 255, 0);
 bool hsbMode = true;
 
 /* game */
+// time per frame
+uint64_t lastTime = 0;
+
 // scale factor between virtuaintl playfield and the display
 const pong_int scaleFactor = 40;
 
@@ -195,7 +202,7 @@ Color display[displaySize];
 
 // ball position and speed in the virtual playfield to be reset to
 Vector ballPositionResetValue(playfieldWidth / 2, playfieldHeight / 2);
-Vector ballSpeedResetValue(-10, -30);
+Vector ballSpeedResetValue(-2, -6);
 
 // ball position and speed in the virtual playfield
 Vector ballPosition = ballPositionResetValue;
@@ -616,7 +623,7 @@ void render()
  */
 void draw()
 {
-	pong_int colorDevider = 10;
+	pong_int colorDevider = 4;
 	
 	// loop through all pixels
 	for (pong_int i = 0; i < displaySize; i++)
@@ -634,9 +641,23 @@ void draw()
  */
 void gameLoop()
 {
+	lastTime = micros();
+	
 	update();
 	render();
 	draw();
+	
+	// potentially buggy, please go to sleep
+	unsigned long overflowCount = 0b0111111111111111;
+	
+	uint64_t FAK_U = 0;
+	
+	if (lastTime - micros() > overflowCount)
+	{
+		uint64_t FAK_U = 0b1111111111111111 - lastTime;
+	}
+	
+	while (micros() - lastTime >= 20000 - FAK_U);
 }
 
 void setup()
@@ -663,7 +684,4 @@ void loop()
 {
 	// call the game iteration method in loop
 	gameLoop();
-	
-	// delay for some time
-	delay(50);
 }
