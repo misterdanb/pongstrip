@@ -3,7 +3,7 @@
  */
 
 #include <Adafruit_NeoPixel.h>
-#include <TimerOne.h>
+//#include <TimerOne.h>
 #include <SPI.h>
 
 #define STRIP_PIN 6
@@ -231,6 +231,10 @@ pong_int winner = 0;
 // display
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(displaySize, STRIP_PIN, NEO_GRB + NEO_KHZ800);
 
+//Coin acceptor
+bool newCoin = false;
+bool roundCoin = false;
+byte coinPulse = 0;
 /*
  * checks collisions between ball and walls and ball and players
  */
@@ -636,6 +640,24 @@ void draw()
 	strip.show();
 }
 
+//Coin Acceptor Routine
+void coinRoutine(){
+	if(newCoin){
+		if(roundCoin){
+			//set lifes and start game
+			if(coinPulse == 2){
+			} else if (coinPulse == 1){
+			}
+			//reset coin status
+			coinPulse = 0;
+			newCoin = false;
+			roundCoin = false;
+		} else {
+			roundCoin = true;
+		}
+	}
+}
+
 /*
  * go through one frame iteration
  */
@@ -646,8 +668,15 @@ void gameLoop()
 	update();
 	render();
 	draw();
+	coinRoutine();
 	
 	while (micros() - lastTime >= 20000);
+}
+
+//Coin Acceptor ISR
+void coin_ISR(){
+	coinPulse++;
+	newCoin = true;
 }
 
 void setup()
@@ -668,6 +697,9 @@ void setup()
 	
 	//Timer1.initialize(10000);
 	//Timer1.attachInterrupt(gameLoop);
+	
+	//Add Interrupt for Coin Acceptor
+	attachInterrupt(0, coin_ISR, RISING);
 }
  
 void loop()
