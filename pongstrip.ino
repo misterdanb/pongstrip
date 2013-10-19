@@ -186,16 +186,16 @@ const pong_int scaleFactor = 40;
 const pong_int displaySize = 60;
 
 // paddle size of the player, actually th color tolerance
-const pong_int playerSize = 40 * scaleFactor;
+pong_int playerSize = 40 * scaleFactor;
 
 // amount of lifes of each player
-const pong_int playerLifes = 3;
+pong_int playerLifes = 3;
 
 // virtual playfield dimensions
-const pong_int playfieldWidth = (displaySize - 2 * playerLifes) * scaleFactor;
-const pong_int playfieldHeight = 255 * scaleFactor;
+pong_int playfieldWidth = (displaySize - 2 * playerLifes) * scaleFactor;
+pong_int playfieldHeight = 255 * scaleFactor;
 
-const Vector playfieldSize(playfieldWidth, playfieldHeight);
+Vector playfieldSize(playfieldWidth, playfieldHeight);
 
 // frame buffer
 Color display[displaySize];
@@ -210,7 +210,6 @@ Vector ballSpeed = ballSpeedResetValue;
 
 // player one position and speeed in the virtual playfield
 Vector playerOnePosition(0, playfieldHeight / 2);
-Vector playerOneSpeed(0, 0);
 
 // player one current size and lifes
 pong_int playerOneSize = playerSize;
@@ -218,7 +217,6 @@ pong_int playerOneLifes = playerLifes;
 
 // player two position and speeed in the virtual playfield
 Vector playerTwoPosition(playfieldWidth - 1, playfieldHeight / 2);
-Vector playerTwoSpeed(0, 0);
 
 // player two current size and lifes
 pong_int playerTwoSize = playerSize;
@@ -640,22 +638,78 @@ void draw()
 	strip.show();
 }
 
-//Coin Acceptor Routine
-void coinRoutine(){
-	if(newCoin){
-		if(roundCoin){
-			//set lifes and start game
-			if(coinPulse == 2){
-			} else if (coinPulse == 1){
+/*
+ * reset the game to start a new one
+ */
+void resetGame()
+{
+	ballPosition = Vector(playfieldWidth / 2, playfieldHeight / 2);
+	ballSpeed = ballSpeedResetValue;
+	
+	gameOver = false;
+	winner = 0;
+	
+	playerOneLifes = playerLifes;
+	playerTwoLifes = playerLifes;
+	
+	playfieldWidth = (displaySize - 2 * playerLifes) * scaleFactor;
+	playfieldHeight = 255 * scaleFactor;
+	
+	playfieldSize = Vector(playfieldWidth, playfieldHeight);
+	
+	playerOnePosition = Vector(0, playfieldHeight / 2);
+	playerTwoPosition = Vector(playfieldWidth - 1, playfieldHeight / 2);
+}
+
+/*
+ * reset the game to start a new one and new maximum player lifes
+ */
+void resetGame(pong_int _playerLifes)
+{
+	playerLifes = _playerLifes;
+	
+	resetGame();
+}
+
+/*
+ * check if coins have been accepted
+ */
+void coinRoutine()
+{
+	if (newCoin)
+	{
+		if (roundCoin > 50)
+		{
+			// set lifes and start game
+			if(coinPulse == 2)
+			{
+				resetGame(3);
 			}
-			//reset coin status
+			else if (coinPulse == 1)
+			{
+				resetGame(1);
+			}
+			
+			// reset coin status
 			coinPulse = 0;
 			newCoin = false;
-			roundCoin = false;
-		} else {
-			roundCoin = true;
+			roundCoin = 0;
+		}
+		else
+		{
+			roundCoin++;
 		}
 	}
+}
+
+/*
+ * handle interrupts by the coin acceptor
+ */
+void coinISR()
+{
+	coinPulse++;
+	
+	newCoin = true;
 }
 
 /*
@@ -668,15 +722,10 @@ void gameLoop()
 	update();
 	render();
 	draw();
+	
 	coinRoutine();
 	
 	while (micros() - lastTime >= 20000);
-}
-
-//Coin Acceptor ISR
-void coin_ISR(){
-	coinPulse++;
-	newCoin = true;
 }
 
 void setup()
@@ -698,8 +747,8 @@ void setup()
 	//Timer1.initialize(10000);
 	//Timer1.attachInterrupt(gameLoop);
 	
-	//Add Interrupt for Coin Acceptor
-	attachInterrupt(0, coin_ISR, RISING);
+	// sdd interrupt for coin acceptor
+	attachInterrupt(0, coinISR, RISING);
 }
  
 void loop()
