@@ -223,7 +223,7 @@ pong_int playerTwoSize = playerSize;
 pong_int playerTwoLifes = playerLifes;
 
 // game status and winner
-bool gameOver = false;
+bool gameOver = true;
 pong_int winner = 0;
 
 // display
@@ -231,7 +231,7 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(displaySize, STRIP_PIN, NEO_GRB + NE
 
 //Coin acceptor
 bool newCoin = false;
-bool roundCoin = false;
+byte roundCoin = 0;
 byte coinPulse = 0;
 /*
  * checks collisions between ball and walls and ball and players
@@ -638,6 +638,14 @@ void draw()
 	strip.show();
 }
 
+void pause()
+{
+	for (pong_int i = 0; i < displaySize; i++)
+	{
+		display[i] = Color(0, 0, 0);
+	}
+}
+
 /*
  * reset the game to start a new one
  */
@@ -678,10 +686,10 @@ void coinRoutine()
 {
 	if (newCoin)
 	{
-		if (roundCoin > 50)
+		if (roundCoin > 100)
 		{
 			// set lifes and start game
-			if(coinPulse == 2)
+			if(coinPulse >= 2)
 			{
 				resetGame(3);
 			}
@@ -719,8 +727,16 @@ void gameLoop()
 {
 	lastTime = micros();
 	
-	update();
-	render();
+	if (!gameOver)
+	{
+		update();
+		render();
+	}
+	else
+	{
+		pause();
+	}
+	
 	draw();
 	
 	coinRoutine();
