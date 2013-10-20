@@ -173,7 +173,7 @@ Color lifeColor(128, 0, 0);
 Color topColor(0, 0, 255);
 Color bottomColor(0, 255, 0);
 
-bool hsbMode = true;
+bool hsbMode = false;
 
 /* game */
 // time per frame
@@ -640,10 +640,83 @@ void draw()
 
 void pause()
 {
-	for (pong_int i = 0; i < displaySize; i++)
+	static unsigned int counter = 0;
+	
+	if (counter % 16 == 0)
 	{
-		display[i] = Color(0, 0, 0);
+		static int one = 0, two = 59;
+		static int oneDirection = 1, twoDirection = -1;
+		static unsigned int oneColorIndex = 0, twoColorIndex = 3;
+		
+		static const Color colors[] = { Color(255, 0, 0), Color(255, 255, 0),
+		                                Color(0, 255, 0), Color(0, 255, 255),
+		                                Color(0, 0, 255), Color(255, 0, 255) };
+		
+		Color oneColor(colors[oneColorIndex]), twoColor(colors[twoColorIndex]);
+		
+		for (pong_int i = 0; i < displaySize; i++)
+		{
+			display[i] /= 2;
+		}
+		
+		if ((one < two && one + oneDirection > two + twoDirection) ||
+		    (one > two && one + oneDirection < two + twoDirection))
+		{
+			oneColorIndex++;
+			oneColorIndex %= 6;
+			
+			twoColorIndex++;
+			twoColorIndex %= 6;
+		}
+		
+		one += oneDirection;
+		two += twoDirection;
+		
+		oneColor = colors[oneColorIndex];
+		twoColor = colors[twoColorIndex];
+		
+		if (one <= 0 || one >= 59)
+		{
+			oneDirection *= -1;
+		}
+		
+		if (two <= 0 || two >= 59)
+		{
+			twoDirection *= -1;
+		}
+		
+		if (one != two)
+		{
+			display[one] = oneColor;
+			display[two] = twoColor;
+		}
+		else
+		{
+			display[one] = (oneColor + twoColor) / 2;
+		}
 	}
+	
+	static int lightningPart = 0;
+	static const Color lightning(200, 200, 200);
+	
+	if (counter % 0xFFF == 0)
+	{
+		lightningPart = 100;
+	}
+	
+	lightningPart--;
+	
+	if (lightningPart < 0)
+	{
+		lightningPart = 0;
+	}
+	
+	for (int i = 0; i < displaySize; i++)
+	{
+		display[i] = ((100 - lightningPart) * display[i] + lightningPart * lightning) / 100;
+	}
+	
+	counter++;
 }
 
 /*
@@ -741,7 +814,9 @@ void gameLoop()
 	
 	coinRoutine();
 	
-	while (micros() - lastTime >= 20000);
+	while (micros() - lastTime <= 20000);
+	
+	Serial.println(String(int(micros() - lastTime)));
 }
 
 void setup()
