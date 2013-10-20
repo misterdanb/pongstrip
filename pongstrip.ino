@@ -1,3 +1,6 @@
+#include <PongStripLib.h>
+
+
 /*
  * AUTHORS: shguro, danb
  */
@@ -11,159 +14,7 @@
 #define POTI_ONE_PIN A0
 #define POTI_TWO_PIN A5
 
-typedef int16_t pong_int;
-
 /* helper classes */
-
-class Vector
-{
-public:
-	Vector()
-		: x(0), y(0)
-	{
-	}
-	
-	Vector(pong_int newX, pong_int newY)
-		: x(newX), y(newY)
-	{
-	}
-	
-	Vector operator+(const Vector& right)
-	{
-		return Vector(x + right.x, y + right.y);
-	}
-	
-	Vector& operator+=(const Vector& right)
-	{
-		x += right.x;
-		y += right.y;
-		
-		return (*this);
-	}
-	
-	Vector operator-(const Vector& right)
-	{
-		return Vector(x - right.x, y - right.y);
-	}
-	
-	Vector& operator-=(const Vector& right)
-	{
-		x -= right.x;
-		y -= right.y;
-		
-		return (*this);
-	}
-	
-	friend Vector operator*(const Vector& left, pong_int right)
-	{
-		return Vector(left.x * right, left.y * right);
-	}
-	
-	friend Vector operator*(pong_int left, const Vector& right)
-	{
-		return Vector(left * right.x, left * right.y);
-	}
-	
-	Vector& operator*=(pong_int right)
-	{
-		x *= right;
-		y *= right;
-		
-		return (*this);
-	}
-	
-	friend Vector operator/(const Vector& left, pong_int right)
-	{
-		return Vector(left.x / right, left.y / right);
-	}
-	
-	Vector& operator/=(pong_int right)
-	{
-		x /= right;
-		y /= right;
-		
-		return (*this);
-	}
-	
-	pong_int x, y;
-};
-
-class Color
-{
-public:
-	Color()
-		: r(0), g(0), b(0)
-	{
-	}
-	
-	Color(pong_int newR, pong_int newG, pong_int newB)
-		: r(newR), g(newG), b(newB)
-	{
-	}
-	
-	Color operator+(const Color& right)
-	{
-		return Color(r + right.r, g + right.g, b + right.b);
-	}
-	
-	Color& operator+=(const Color& right)
-	{
-		r += right.r;
-		g += right.g;
-		b += right.b;
-		
-		return (*this);
-	}
-	
-	Color operator-(const Color& right)
-	{
-		return Color(r - right.r, g - right.g, b - right.b);
-	}
-	
-	Color& operator-=(const Color& right)
-	{
-		r -= right.r;
-		g -= right.g;
-		b -= right.b;
-		
-		return (*this);
-	}
-	
-	friend Color operator*(const Color& left, pong_int right)
-	{
-		return Color(left.r * right, left.g * right, left.b * right);
-	}
-	
-	friend Color operator*(pong_int left, const Color& right)
-	{
-		return Color(left * right.r, left * right.g, left * right.b);
-	}
-	
-	Color& operator*=(pong_int right)
-	{
-		r *= right;
-		g *= right;
-		b *= right;
-		
-		return (*this);
-	}
-	
-	friend Color operator/(const Color& left, pong_int right)
-	{
-		return Color(left.r / right, left.g / right, left.b / right);
-	}
-	
-	Color& operator/=(pong_int right)
-	{
-		r /= right;
-		g /= right;
-		b /= right;
-		
-		return (*this);
-	}
-	
-	pong_int r, g, b;
-};
 
 /* colors */
 Color black(0, 0, 0);
@@ -180,20 +31,20 @@ bool hsbMode = false;
 uint64_t lastTime = 0;
 
 // scale factor between virtuaintl playfield and the display
-const pong_int scaleFactor = 40;
+const int scaleFactor = 40;
 
 // size of the display
-const pong_int displaySize = 60;
+const int displaySize = 60;
 
 // paddle size of the player, actually th color tolerance
-pong_int playerSize = 40 * scaleFactor;
+int playerSize = 40 * scaleFactor;
 
 // amount of lifes of each player
-pong_int playerLifes = 3;
+int playerLifes = 3;
 
 // virtual playfield dimensions
-pong_int playfieldWidth = (displaySize - 2 * playerLifes) * scaleFactor;
-pong_int playfieldHeight = 255 * scaleFactor;
+int playfieldWidth = (displaySize - 2 * playerLifes) * scaleFactor;
+int playfieldHeight = 255 * scaleFactor;
 
 Vector playfieldSize(playfieldWidth, playfieldHeight);
 
@@ -212,19 +63,19 @@ Vector ballSpeed = ballSpeedResetValue;
 Vector playerOnePosition(0, playfieldHeight / 2);
 
 // player one current size and lifes
-pong_int playerOneSize = playerSize;
-pong_int playerOneLifes = playerLifes;
+int playerOneSize = playerSize;
+int playerOneLifes = playerLifes;
 
 // player two position and speeed in the virtual playfield
 Vector playerTwoPosition(playfieldWidth - 1, playfieldHeight / 2);
 
 // player two current size and lifes
-pong_int playerTwoSize = playerSize;
-pong_int playerTwoLifes = playerLifes;
+int playerTwoSize = playerSize;
+int playerTwoLifes = playerLifes;
 
 // game status and winner
 bool gameOver = true;
-pong_int winner = 0;
+int winner = 0;
 
 // display
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(displaySize, STRIP_PIN, NEO_GRB + NEO_KHZ800);
@@ -495,7 +346,7 @@ Color generateColorByPosition(Vector& position, Color& colorOne, Color& colorTwo
 void renderPreEffects()
 {
 	// some slow outfading of the colors on the display
-	for (pong_int i = 0; i < displaySize; i++)
+	for (int i = 0; i < displaySize; i++)
 	{
 		display[i] /= 2;
 	}
@@ -507,7 +358,7 @@ void renderPreEffects()
 void renderLifesOfThePlayers()
 {
 	// loop through all the possible life pixels
-	for (pong_int i = 0; i < playerLifes; i++) 
+	for (int i = 0; i < playerLifes; i++) 
 	{
 		// is i in range of lifes left for player one?
 		if (i < playerOneLifes)
@@ -625,10 +476,10 @@ void render()
  */
 void draw()
 {
-	pong_int colorDevider = 4;
+	int colorDevider = 4;
 	
 	// loop through all pixels
-	for (pong_int i = 0; i < displaySize; i++)
+	for (int i = 0; i < displaySize; i++)
 	{
 		// set the pixel color
 		strip.setPixelColor(i, strip.Color(display[i].r / colorDevider, display[i].g / colorDevider, display[i].b / colorDevider));
@@ -654,7 +505,7 @@ void pause()
 		
 		Color oneColor(colors[oneColorIndex]), twoColor(colors[twoColorIndex]);
 		
-		for (pong_int i = 0; i < displaySize; i++)
+		for (int i = 0; i < displaySize; i++)
 		{
 			display[i] /= 2;
 		}
@@ -745,7 +596,7 @@ void resetGame()
 /*
  * reset the game to start a new one and new maximum player lifes
  */
-void resetGame(pong_int _playerLifes)
+void resetGame(int _playerLifes)
 {
 	playerLifes = _playerLifes;
 	
