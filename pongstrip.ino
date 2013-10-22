@@ -53,7 +53,7 @@ Color display[displaySize];
 
 // ball position and speed in the virtual playfield to be reset to
 Vector ballPositionResetValue(playfieldWidth / 2, playfieldHeight / 2);
-Vector ballSpeedResetValue(-2, -6);
+Vector ballSpeedResetValue(-10, -20);
 
 // ball position and speed in the virtual playfield
 Vector ballPosition = ballPositionResetValue;
@@ -493,7 +493,7 @@ void pause()
 {
 	static unsigned int counter = 0;
 	
-	if (counter % 16 == 0)
+	if (counter % 4 == 0)
 	{
 		static int one = 0, two = 59;
 		static int oneDirection = 1, twoDirection = -1;
@@ -690,7 +690,9 @@ void setup()
 	//Timer1.attachInterrupt(gameLoop);
 	
 	// sdd interrupt for coin acceptor
-	attachInterrupt(0, coinISR, RISING);
+	attachInterrupt(1, coinISR, RISING);
+	pinMode(3, INPUT);
+	digitalWrite(3, HIGH);
 }
  
 void loop()
